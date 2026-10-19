@@ -1,0 +1,26 @@
+[Unit]
+Description=NAVIA video detector (CIX/NOE)
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=nik
+SupplementaryGroups=video render
+WorkingDirectory=/home/nik/work/navia/video_detector
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=-/etc/default/video-detector
+ExecStart=/usr/bin/python3 /home/nik/work/navia/video_detector/main.py --config /home/nik/work/navia/video_detector/config.json
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGTERM
+KillMode=control-group
+TimeoutStopSec=60
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=video-detector
+
+[Install]
+WantedBy=multi-user.target

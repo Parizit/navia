@@ -1,0 +1,32 @@
+{
+  "source": {
+    "type": "camera",
+    "fps": 20,
+    "camera": {
+      "device": "/dev/video3",
+      "width": 1280,
+      "height": 720,
+      "publication": {
+        "enabled": true,
+        "udp_host": "127.0.0.1",
+        "udp_port": 10000,
+        "bitrate_kbps": 2048
+      }
+    },
+    "rtsp": {
+      "url": "rtsp://10.2.0.123:554/stream1"
+    },
+    "source_ip": "10.2.0.123"
+  },
+  "websockets": [
+    "ws://127.0.0.1:8765"
+  ],
+  "detector": {
+    "model_path": "models/objects.cix",
+    "size": [640, 640],
+    "roi": [0, 0, 1, 1],
+    "score": 0.25,
+    "iou": 0.45,
+    "fps": 5
+  }
+}
