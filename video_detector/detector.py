@@ -3,6 +3,8 @@
 #
 # camera.py.py
 # @Author : Kozin Nikita (nikit-kozin@yandex.ru)
+from __future__ import annotations
+
 import ctypes
 from pathlib import Path
 

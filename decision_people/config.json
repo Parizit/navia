@@ -1,0 +1,15 @@
+{
+  "listen": {"host": "127.0.0.1", "port": 8765},
+  "websockets": ["ws://127.0.0.1:8766"],
+  "classes": ["person", "body"],
+  "track": {
+    "max_distance": 0.15,
+    "timeout": 1.0,
+    "min_hits": 5,
+    "iou": 0.1,
+    "area_ratio": 2.5
+  },
+  "track_point": "bottom_center",
+  "lines": [[0.0, 0.5, 1.0, 0.5]],
+  "direction": {"forward": "Вход", "backward": "Выход"}
+}

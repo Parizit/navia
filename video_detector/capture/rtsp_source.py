@@ -3,11 +3,11 @@
 #
 # camera.py.py
 # @Author : Kozin Nikita (nikit-kozin@yandex.ru)
-import logging
+from logging import getLogger
 
 from .frame_source import FrameSource, GStreamerUnavailable
 
-log = logging.getLogger(__name__)
+log = getLogger('navia')
 
 
 class RTSPSource:

@@ -4,9 +4,10 @@
 # camera.py.py
 # @Author : Kozin Nikita (nikit-kozin@yandex.ru)
 import argparse
-import logging
+from logging import getLogger
 import signal
 from contextlib import ExitStack
+from datetime import datetime
 from threading import Event
 from time import perf_counter
 
@@ -14,8 +15,10 @@ from config import load_config
 from capture import create_source
 from detector import Detector
 from websocket_sender import WebSocketSender
+from logging_config import setup_logging
 
-log = logging.getLogger(__name__)
+log = getLogger('navia')
+TIME_FORMAT = '%Y-%m-%d %H:%M:%S.%f'
 
 
 def run(cfg: dict, stop: Event) -> None:
@@ -50,17 +53,23 @@ def run(cfg: dict, stop: Event) -> None:
             if now < next_detection:
                 continue
             next_detection = now + interval
+            timestamp = datetime.now().strftime(TIME_FORMAT)
             objects = detector.detect(frame)
-            sender.send({'source': cfg['source'].get('source_ip', ''), 'objects': objects})
+            sender.send({'source': cfg['source'].get('source_ip', ''),
+                         'timestamp': timestamp, 'objects': objects})
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', '-c', default='config.json')
+    parser.add_argument('--debug', action='store_true',
+                        help='Включить отладочные сообщения в консоли и файле')
+    parser.add_argument('--log-backups', type=int, default=5, metavar='N',
+                        help='Количество архивных файлов лога (>= 1, по умолчанию 5)')
     args = parser.parse_args()
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s %(levelname)s [%(name)s]: %(message)s')
+    if args.log_backups < 1:
+        parser.error('--log-backups должен быть >= 1')
+    setup_logging(is_debug=args.debug, backup_count=args.log_backups)
     cfg = load_config(args.config)
     stop = Event()
     signal.signal(signal.SIGTERM, lambda *_: stop.set())

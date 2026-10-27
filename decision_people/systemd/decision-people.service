@@ -1,0 +1,19 @@
+[Unit]
+Description=People tracking and line crossing counter
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=nik
+WorkingDirectory=/home/nik/work/RELEASE/DECISION/mtp-decision-people
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /home/nik/work/RELEASE/DECISION/mtp-decision-people/main.py --config /home/nik/work/RELEASE/DECISION/mtp-decision-people/config.json
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

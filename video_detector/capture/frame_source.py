@@ -3,13 +3,13 @@
 #
 # camera.py.py
 # @Author : Kozin Nikita (nikit-kozin@yandex.ru)
-import logging
+from logging import getLogger
 from time import perf_counter, sleep
 from typing import Optional, Protocol
 
 import numpy as np
 
-log = logging.getLogger(__name__)
+log = getLogger('navia')
 
 
 class GStreamerUnavailable(RuntimeError):

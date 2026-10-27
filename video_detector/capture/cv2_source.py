@@ -3,11 +3,11 @@
 #
 # camera.py.py
 # @Author : Kozin Nikita (nikit-kozin@yandex.ru)
-import logging
+from logging import getLogger
 
 import cv2
 
-log = logging.getLogger(__name__)
+log = getLogger('navia')
 OPEN_TIMEOUT = int(10.0 * 1000)
 READ_TIMEOUT = int(1.0 * 1000)
 

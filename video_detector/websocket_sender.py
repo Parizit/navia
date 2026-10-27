@@ -3,8 +3,10 @@
 #
 # camera.py.py
 # @Author : Kozin Nikita (nikit-kozin@yandex.ru)
+from __future__ import annotations
+
 import json
-import logging
+from logging import getLogger
 import socket
 from queue import Empty, Full, Queue
 from threading import Event, Lock, RLock, Thread
@@ -14,8 +16,9 @@ from websockets.sync.client import connect
 
 from config import normalize_websocket_urls
 
-log = logging.getLogger(__name__)
+log = getLogger('navia')
 CLOSE_TIMEOUT = 1.0
+PING_INTERVAL = 20.0
 
 
 class WebSocketSender:
@@ -34,6 +37,7 @@ class WebSocketSender:
         self._messages = Queue(maxsize=1)
         self._connections = {}
         self._retry_at = {}
+        self._pings = {}
         self._stopped = Event()
         self._thread = None
         self._started = False
@@ -50,6 +54,7 @@ class WebSocketSender:
                                    'не завершилась')
             self._messages = Queue(maxsize=1)
             self._retry_at.clear()
+            self._pings.clear()
             self._stopped.clear()
             if self._urls:
                 self._thread = Thread(target=self._run, name='ws-sender',
@@ -78,6 +83,7 @@ class WebSocketSender:
                 self._messages.put_nowait((payload, recipients))
 
     def _disconnect(self, url: str, ws) -> None:
+        self._pings.pop(url, None)
         with self._connections_lock:
             self._connections.pop(url, None)
         self._retry_at[url] = perf_counter() + self._reconnect
@@ -97,8 +103,7 @@ class WebSocketSender:
                     continue
                 try:
                     ws = connect(url, open_timeout=self._connect_timeout,
-                                 close_timeout=CLOSE_TIMEOUT, ping_interval=20,
-                                 ping_timeout=20, proxy=None)
+                                 close_timeout=CLOSE_TIMEOUT)
                 except Exception as exc:
                     self._retry_at[url] = perf_counter() + self._reconnect
                     log.warning('WebSocket %s: %s; повтор через %.1f с',
@@ -112,6 +117,17 @@ class WebSocketSender:
                 ws.recv(timeout=0)
             except TimeoutError:
                 pass
+            except Exception as exc:
+                log.warning('WebSocket %s: %s', url, exc)
+                self._disconnect(url, ws)
+                continue
+            try:
+                now = perf_counter()
+                pong, sent_at = self._pings.get(url, (None, now))
+                if pong is None or (pong.is_set() and now - sent_at >= PING_INTERVAL):
+                    self._pings[url] = (ws.ping(), now)
+                elif not pong.is_set() and now - sent_at >= PING_INTERVAL:
+                    raise TimeoutError('Нет ответа на WebSocket Ping')
             except Exception as exc:
                 log.warning('WebSocket %s: %s', url, exc)
                 self._disconnect(url, ws)

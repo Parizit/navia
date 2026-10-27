@@ -1,4 +1,4 @@
-numpy
-opencv-python-headless
-websockets
-PyYAML
+numpy>=1.24.4
+opencv-python-headless>=4.8,<4.12
+websockets>=13.1,<14
+PyYAML>=6
