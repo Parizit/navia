@@ -128,7 +128,8 @@ def create_source(cfg: dict) -> FrameSource:
             fps=source['fps'], udp_host=pub.get('udp_host', '127.0.0.1'),
             udp_port=pub.get('udp_port', 10000),
             bitrate=pub.get('bitrate_kbps', 2048),
-            publish_enabled=pub.get('enabled', False))
+            publish_enabled=pub.get('enabled', False),
+            input_format=cam.get('input_format', 'yuyv422'))
     elif source['type'] == 'rtsp':
         from .rtsp_source import RTSPSource
         camera = RTSPSource(source['rtsp'])

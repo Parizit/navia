@@ -4,6 +4,7 @@
     "fps": 20,
     "camera": {
       "device": "/dev/video3",
+      "input_format": "yuyv422",
       "width": 1280,
       "height": 720,
       "publication": {

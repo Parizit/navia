@@ -76,6 +76,8 @@ def load_config(path: str) -> dict:
                              'строкой')
         for field in ('width', 'height'):
             camera[field] = _integer(camera[field], f'source.camera.{field}')
+        if camera.setdefault('input_format', 'yuyv422') not in ('yuyv422', 'mjpeg'):
+            raise ValueError('source.camera.input_format: yuyv422 или mjpeg')
 
         publish = camera.setdefault('publication', {'enabled': False})
         if not isinstance(publish.get('enabled'), bool):

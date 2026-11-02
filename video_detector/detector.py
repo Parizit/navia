@@ -6,13 +6,40 @@
 from __future__ import annotations
 
 import ctypes
+from logging import getLogger
 from pathlib import Path
+import sys
+import signal
 
 import cv2
 import numpy as np
 import yaml
 
 from config import normalize_roi
+
+log = getLogger('navia')
+
+
+def _call_sdk(function, *args):
+    """Не прерывать текущий вызов SDK сигналами остановки этого потока."""
+    previous = signal.pthread_sigmask(signal.SIG_BLOCK,
+                                      {signal.SIGINT, signal.SIGTERM})
+    try:
+        return function(*args)
+    finally:
+        signal.pthread_sigmask(signal.SIG_SETMASK, previous)
+
+
+def _sdk_print(*args, **kwargs):
+    message = ' '.join(str(arg) for arg in args)
+    if (message.startswith('npu: ') and message.endswith(' success')) or (
+        message.startswith(('Input tensor count is ',
+                            'Output tensor count is '))
+    ):
+        ...
+        # log.debug('%s', message)
+    else:
+        print(*args, **kwargs)
 
 
 ANCHORS = np.array([[[10, 13], [16, 30], [33, 23]],
@@ -31,6 +58,7 @@ def _engine_type():
             raise RuntimeError('Для CIX нужен NOE_Engine из SDK') from exc
         ctypes.CDLL(str(library), mode=ctypes.RTLD_GLOBAL)
         from NOE_Engine import EngineInfer
+    sys.modules[EngineInfer.__module__].print = _sdk_print
     return EngineInfer
 
 
@@ -73,7 +101,7 @@ class Detector:
         self.names = self._read_names(path.with_suffix('.yaml'))
         self._engine = None
         try:
-            self._engine = _engine_type()(str(path))
+            self._engine = _call_sdk(_engine_type(), str(path))
             self._engine.job_cfg.partition_id = 0
             self._layout = self._check_tensors()
         except Exception:
@@ -186,7 +214,7 @@ class Detector:
             raise RuntimeError('CIX-детектор закрыт')
         cropped, (offset_x, offset_y) = self._crop(frame)
         tensor, (width, height, left, top) = self._prepare(cropped)
-        rows = self._decode(self._engine.forward([tensor]))
+        rows = self._decode(_call_sdk(self._engine.forward, [tensor]))
         rows = self._nms(rows)
         rows[:, (0, 2)] = np.clip((rows[:, (0, 2)] - left) / width, 0, 1)
         rows[:, (1, 3)] = np.clip((rows[:, (1, 3)] - top) / height, 0, 1)
@@ -201,4 +229,4 @@ class Detector:
     def close(self) -> None:
         engine, self._engine = self._engine, None
         if engine is not None:
-            engine.clean()
+            _call_sdk(engine.clean)

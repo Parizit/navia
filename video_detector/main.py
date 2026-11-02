@@ -28,11 +28,13 @@ def run(cfg: dict, stop: Event) -> None:
         camera = create_source(cfg)
         resources.callback(camera.close)
         settings = cfg['detector']
-        detector = Detector(settings['model_path'], size=settings.get('size', [640, 640]),
-                            score=settings.get('score', 0.25), iou=settings.get('iou', 0.45),
-                            roi=settings.get('roi'))
+        detector = Detector(
+            settings['model_path'], size=settings.get('size', [640, 640]),
+            score=settings.get('score', 0.25), iou=settings.get('iou', 0.45),
+            roi=settings.get('roi'))
         resources.callback(detector.close)
-        log.info('CIX-детектор: %s; вход %s', settings['model_path'], detector.size)
+        log.info('CIX-детектор: %s; вход %s', settings['model_path'],
+                 detector.size)
         fps = settings.get('fps', 0)
         interval = 1 / fps if fps > 0 else 0
         next_detection = 0
@@ -55,6 +57,8 @@ def run(cfg: dict, stop: Event) -> None:
             next_detection = now + interval
             timestamp = datetime.now().strftime(TIME_FORMAT)
             objects = detector.detect(frame)
+            if objects:
+                log.debug('Обнаружено объектов: %s', objects)
             sender.send({'source': cfg['source'].get('source_ip', ''),
                          'timestamp': timestamp, 'objects': objects})
 
@@ -64,12 +68,8 @@ def main() -> None:
     parser.add_argument('--config', '-c', default='config.json')
     parser.add_argument('--debug', action='store_true',
                         help='Включить отладочные сообщения в консоли и файле')
-    parser.add_argument('--log-backups', type=int, default=5, metavar='N',
-                        help='Количество архивных файлов лога (>= 1, по умолчанию 5)')
     args = parser.parse_args()
-    if args.log_backups < 1:
-        parser.error('--log-backups должен быть >= 1')
-    setup_logging(is_debug=args.debug, backup_count=args.log_backups)
+    setup_logging(is_debug=args.debug, backup_count=5)
     cfg = load_config(args.config)
     stop = Event()
     signal.signal(signal.SIGTERM, lambda *_: stop.set())
