@@ -3,6 +3,7 @@ import ulid
 from collections import defaultdict, deque
 from time import time, perf_counter
 from datetime import datetime
+from logging import getLogger
 
 from uuid import uuid4
 
@@ -13,6 +14,8 @@ from geometry import (Frame, PairEvidence, assign_ids, collect_evidence,
                       visible_tracks)
 from tracker import Tracker
 
+log = getLogger('navia.cabin')
+
 TIME_FORMAT = '%Y-%m-%d %H:%M:%S.%f'
 TOKEN = ('eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJjbGkiLCJzdWIiOiJuYXZ'
          'pYSIsImV4cCI6MTg0NDY3NDQwNzM3MDk1NTE2MTUsImVzX2RvbWFpbiI6ImRlZmF1bHQ'
@@ -20,8 +23,7 @@ TOKEN = ('eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJjbGkiLCJzdWIiOiJuYXZ'
 
 
 def create_message(data: dict) -> dict:
-    data['source'] = 'cabin_occupancy@config'
-    data['status'] = 'normal'
+    data = {**data, 'source': 'cabin_occupancy@config', 'status': 'normal'}
     entity_id = str(ulid.new())
     return {'jsonrpc': '2.0', 'id':  str(uuid4()), 'method': 'mtp.save-event',
             'params': {'auth': {'token': TOKEN}, 'declaration': 'event',
@@ -75,7 +77,7 @@ class CountReporter:
         self.since = None
         self.reported = None
 
-    def update(self, count, now, timestamp):
+    def update(self, count, now, timestamp, cameras):
         if count is None:
             self.candidate = self.since = None
             return []
@@ -89,9 +91,11 @@ class CountReporter:
             return []
         self.reported = count
         data = {'event_type': 1005, 'timestamp_end': timestamp_text(timestamp),
-                'addons': {'extra': {
+                'addons': {'occupancy': {
                     'count': count, 'previous_count': previous,
-                    'reason': 'initial' if previous is None else 'changed'}}}
+                    'available_cameras': cameras}}}
+        log.debug('Количество пассажиров: %s -> %s. Камеры: %s', previous,
+                  count, cameras)
 
         return [create_message(data)]
 
@@ -143,7 +147,9 @@ class CabinCounter:
         events = self._drop_stale(now)
         self.last_timestamp[camera] = timestamp
         self.received_at[camera] = now
-        self.unavailable.discard(camera)
+        if camera in self.unavailable:
+            self.unavailable.remove(camera)
+            events.append(self._camera_event(camera, available=True))
         self.queues[camera].append((now, Frame(camera, timestamp, boxes)))
         return events + self._drain(now)
 
@@ -191,16 +197,24 @@ class CabinCounter:
             # Сохраняем последовательность ID
             self.trackers[camera].tracks.clear()
 
-            data = {'event_type': 1003,
-                    'timestamp_begin': timestamp_text(time()),
-                    'validity': 100,
-                    'addons': {'extra': {
-                        'source_camera': camera, 'info': 'Камера недоступна',
-                        'camera_ip': self.config.sources[camera]}}}
-            events.append(create_message(data))
+            events.append(self._camera_event(camera, available=False))
         if events:
             self._update_count()
         return events
+
+    def _camera_event(self, camera, available):
+        log.debug('Камера %s доступна: %s', camera, available)
+        return create_message({
+            'event_type': 1004 if available else 1003,
+            'timestamp_begin': timestamp_text(time()),
+            'validity': 100,
+            'addons': {'occupancy': {
+                'source_camera': camera,
+                'info': ('Камера доступна' if available else
+                         'Камера недоступна'),
+                'camera_ip': self.config.sources[camera],
+            }},
+        })
 
     def _update_tracks(self, frames):
         for camera in frames:
@@ -240,8 +254,5 @@ class CabinCounter:
 
     def _report(self, now):
         cameras = self._ready_cameras()
-        events = self.reporter.update(self.count if cameras else None, now,
-                                      self.processed_timestamp)
-        for event in events:
-            event['available_cameras'] = cameras
-        return events
+        return self.reporter.update(self.count if cameras else None, now,
+                                    self.processed_timestamp, cameras)

@@ -31,7 +31,6 @@ class CabinWebSocket:
                                      separators=(',', ':'))
                 for queue in self.queues.values():
                     await queue.put(payload)
-                print(payload, flush=True)
 
     async def receive(self, ws):
         task = asyncio.current_task()

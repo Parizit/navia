@@ -1,0 +1,27 @@
+{
+    "declarations": {
+        "occupancy": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "count": {"type": "integer"},
+                "previous_count": {"type": "integer"},
+                "reason": {
+                    "type": "string",
+                    "enum": ["initial", "changed"]
+                },
+                "available_cameras": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "source_camera": {"type": "string"},
+                "info": {"type": "string"},
+                "camera_ip": {"type": "string"}
+            },
+            "required": [],
+            "mtp:event": {"base": "event"}
+        }
+    }
+}

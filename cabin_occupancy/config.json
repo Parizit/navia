@@ -1,15 +1,15 @@
 {
-  "listen": {"host": "127.0.0.1", "port": 8585},
-  "websockets": [],
+  "listen": {"host": "127.0.0.1", "port": 8586},
+  "websockets": ["ws://10.2.0.121:2204/jsonrpc"],
   "sources": {
-    "cam1": "127.0.0.1",
-    "cam2": "192.0.2.12",
+    "cam1": "192.0.2.11",
+    "cam2": "127.0.0.1",
     "cam3": "192.0.2.13",
     "cam4": "192.0.2.14"
   },
   "classes": ["head"],
   "geometry_path": "geometry.json",
-  "stable_seconds": 120,
+  "stable_seconds": 15,
   "camera_timeout_seconds": 2,
   "sync_ms": 35,
   "buffer_ms": 100
