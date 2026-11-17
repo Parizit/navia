@@ -69,25 +69,40 @@ def parse_message(message):
 
 
 class CountReporter:
-    """Первичная стабилизация, затем сообщение при каждом новом числе."""
+    """Публикация первого и каждого нового числа после стабилизации."""
 
-    def __init__(self, stable_seconds):
+    def __init__(self, stable_seconds, count_grace_seconds):
         self.stable_seconds = stable_seconds
+        self.grace_seconds = min(stable_seconds, count_grace_seconds)
         self.candidate = None
         self.since = None
+        self.observed = None
+        self.observed_since = None
+        self.interrupted_at = None
         self.reported = None
 
     def update(self, count, now, timestamp, cameras):
+        if count != self.observed:
+            self.observed, self.observed_since = count, now
         if count is None:
-            self.candidate = self.since = None
+            self.candidate = self.since = self.interrupted_at = None
             return []
-        if count != self.candidate:
-            self.candidate = count
-            self.since = now
+        if self.candidate is None:
+            self.candidate, self.since = count, now
+        elif count != self.candidate:
+            if self.interrupted_at is None:
+                self.interrupted_at = now
+            if now - self.interrupted_at < self.grace_seconds:
+                return []
+            self.candidate, self.since = count, self.observed_since
+            self.interrupted_at = None
+        elif self.interrupted_at is not None:
+            if now - self.interrupted_at >= self.grace_seconds:
+                self.since = now
+            self.interrupted_at = None
 
         previous = self.reported
-        if previous == count or (previous is None and
-                                 now - self.since < self.stable_seconds):
+        if previous == count or now - self.since < self.stable_seconds:
             return []
         self.reported = count
         data = {'event_type': 1005, 'timestamp_end': timestamp_text(timestamp),
@@ -106,7 +121,8 @@ class CabinCounter:
         self.poses = poses
         self.intrinsics = intrinsics
         self.sizes = sizes
-        self.reporter = CountReporter(config.stable_seconds)
+        self.reporter = CountReporter(config.stable_seconds,
+                                      config.count_grace_seconds)
         self.trackers = {camera: Tracker(config.track) for camera in poses}
         self.queues = {camera: deque() for camera in poses}
         self.camera_by_source = {source: camera

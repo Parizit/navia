@@ -10,6 +10,7 @@
   "classes": ["head"],
   "geometry_path": "geometry.json",
   "stable_seconds": 15,
+  "count_grace_seconds": 1.5,
   "camera_timeout_seconds": 2,
   "sync_ms": 35,
   "buffer_ms": 100

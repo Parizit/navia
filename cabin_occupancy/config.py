@@ -66,6 +66,7 @@ class Settings:
     offset_ms: dict[str, float] = field(default_factory=dict)
     zones: dict[str, list] = field(default_factory=dict)
     stable_seconds: float = 120
+    count_grace_seconds: float = 1.5
     camera_timeout_seconds: float = 2
     sync_ms: float = 35
     buffer_ms: float = 100
@@ -130,6 +131,7 @@ def load_settings(path):
             raise ValueError(f'zones.{camera}: область должна иметь ненулевую '
                              'площадь.')
     number(settings.stable_seconds, 'stable_seconds')
+    number(settings.count_grace_seconds, 'count_grace_seconds')
     for field_name in ('camera_timeout_seconds', 'sync_ms', 'buffer_ms',
                        'max_distance_m', 'max_error_px', 'ambiguity_px',
                        'min_ratio'):
