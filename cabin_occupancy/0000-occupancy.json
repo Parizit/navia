@@ -6,10 +6,6 @@
             "properties": {
                 "count": {"type": "integer"},
                 "previous_count": {"type": "integer"},
-                "reason": {
-                    "type": "string",
-                    "enum": ["initial", "changed"]
-                },
                 "available_cameras": {
                     "type": "array",
                     "items": {
