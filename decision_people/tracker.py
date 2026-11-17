@@ -64,8 +64,7 @@ def associate(boxes, predictions, settings):
                                     1e-12)
     ratio = np.maximum(areas, previous_areas) / np.maximum(
         np.minimum(areas, previous_areas), 1e-12)
-    valid = ((distance <= settings['max_distance'])
-             & (iou >= settings['iou']) & (ratio <= settings['area_ratio']))
+    valid = ((distance <= settings['max_distance']) & (iou >= settings['iou']))
     if settings['iou']:
         valid &= distance <= np.minimum(settings['max_distance'],
                                         0.02 + 0.5 * (1 - iou))
