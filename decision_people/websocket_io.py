@@ -39,7 +39,8 @@ class WebSocketIO:
         try:
             async for payload in ws:
                 try:
-                    events = self.counter.process(json.loads(payload))
+                    message = json.loads(payload)
+                    events = self.counter.process(message)
                 except (ValueError, TypeError, UnicodeError) as exc:
                     log.warning('Отклонено сообщение детектора: %s', exc)
                     continue
@@ -66,7 +67,8 @@ class WebSocketIO:
                     pending = await queue.get()
                 try:
                     async with connect(url, open_timeout=3, close_timeout=1,
-                                       max_size=1_048_576, max_queue=16) as ws:
+                                       ping_interval=5, ping_timeout=10,
+                                       max_size=1_048_576) as ws:
                         log.info('Выход WebSocket подключён: %s', url)
                         while True:
                             await asyncio.wait_for(ws.send(pending), timeout=5)
@@ -86,7 +88,7 @@ class WebSocketIO:
     async def run(self, stop):
         async with serve(self.receive, self.cfg['listen']['host'],
                          self.cfg['listen']['port'], max_size=1_048_576,
-                         max_queue=16, close_timeout=1):
+                         ping_interval=10, ping_timeout=30, close_timeout=1):
             tasks = []
             try:
                 log.info('Вход WebSocket: ws://%s:%s',
