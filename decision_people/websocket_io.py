@@ -75,7 +75,8 @@ class WebSocketIO:
                             queue.task_done()
                             pending = None
                             pending = await queue.get()
-                except (OSError, asyncio.TimeoutError, WebSocketException) as exc:
+                except (OSError, asyncio.TimeoutError,
+                        WebSocketException) as exc:
                     log.warning('Выход WebSocket %s: %s; повтор через 3 с',
                                 url, exc)
                     await asyncio.sleep(3)
