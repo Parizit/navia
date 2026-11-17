@@ -56,7 +56,7 @@ def normalize_config(cfg):
         raise ValueError('classes: непустой список названий классов')
     track = cfg.setdefault('track', {})
     defaults = {'max_distance': 0.15, 'timeout': 1.0, 'min_hits': 5,
-                'iou': 0.1, 'area_ratio': 2.5}
+                'iou': 0.1}
     if not isinstance(track, dict) or track.keys() - defaults.keys():
         raise ValueError('Неизвестные параметры track')
     for name, value in defaults.items():
@@ -67,7 +67,6 @@ def normalize_config(cfg):
             raise ValueError(f'track.{key}: должно быть > 0')
     integer(track['min_hits'], 'track.min_hits', 2)
     number(track['iou'], 'track.iou', 0, 1)
-    number(track['area_ratio'], 'track.area_ratio', 1)
     if cfg.setdefault('track_point', 'bottom_center') not in ('center', 'bottom_center'):
         raise ValueError('track_point: center или bottom_center')
     lines = cfg.get('lines')
