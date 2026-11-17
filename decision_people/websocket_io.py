@@ -25,9 +25,6 @@ class WebSocketIO:
         for event in events:
             payload = json.dumps(event, ensure_ascii=False, allow_nan=False,
                                  separators=(',', ':'))
-            data = next(iter(event['params']['entity'].values()))
-            log.info('Проход: source=%s %s (%s)', data['source'],
-                     data['info'], data['timestamp'])
             # События нельзя заменять последним сообщением, как детекции.
             # Заполненные очереди замедляют приём вместо потери проходов.
             for queue in self.queues.values():

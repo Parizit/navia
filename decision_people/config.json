@@ -10,5 +10,5 @@
   },
   "track_point": "bottom_center",
   "lines": [[0.0, 0.65, 1.0, 0.65]],
-  "direction": {"forward": "Вход", "backward": "Выход"}
+  "forward2In": true
 }

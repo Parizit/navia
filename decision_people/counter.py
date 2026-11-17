@@ -5,18 +5,25 @@
 # @Author : Kozin Nikita (nikit-kozin@yandex.ru)
 from datetime import datetime
 import math
+import ulid
 from time import perf_counter
 from uuid import uuid4
-import ulid
+from logging import getLogger
 
 import numpy as np
 
 from tracker import Tracker
 
+log = getLogger('navia')
+
 TIME_FORMAT = '%Y-%m-%d %H:%M:%S.%f'
 TOKEN = ('eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJjbGkiLCJzdWIiOiJuYXZ'
          'pYSIsImV4cCI6MTg0NDY3NDQwNzM3MDk1NTE2MTUsImVzX2RvbWFpbiI6ImRlZmF1bHQ'
          'ifQ.1tQGHKAYCWLVyEwL_pq_mhV-b8xMhSFoBC1POD-DGSg')
+
+EVENT_TYPES = {
+    1000: 'Вход', 1001: 'Выход', 1002: 'Направление движения не определено'
+}
 
 
 def cross(a, b):
@@ -52,9 +59,9 @@ def timestamp_text(timestamp):
 
 
 def parse_message(message):
-    # message = list(message.get('params', {}).get('entity', {}).values())[0]
-    # message['objects'] = [[*obj['boxes'], obj['score'], obj['class']]
-    #                       for obj in message.get('objects', [])]
+    message = list(message.get('params', {}).get('entity', {}).values())[0]
+    message['objects'] = [[*obj['boxes'], obj['score'], obj['class']]
+                          for obj in message.get('objects', [])]
     if not isinstance(message, dict):
         raise ValueError('Сообщение должно быть JSON-объектом')
 
@@ -136,25 +143,25 @@ class PeopleCounter:
             directions = {0 if abs(shift) < 0.02 else (-1 if shift > 0 else 1)
                           for shift in shifts}
             sign = directions.pop() if len(directions) == 1 else 0
-            event_type = 1 if sign > 0 else 2 if sign < 0 else 3
-            direction = (self.cfg['direction']['forward'] if sign > 0 else
-                         self.cfg['direction']['backward'] if sign < 0 else
-                         'Движение было изменено')
+
+            if self.cfg['forward2In']:
+                event_type = 1000 if sign > 0 else 1001 if sign < 0 else 1002
+            else:
+                event_type = 1001 if sign > 0 else 1000 if sign < 0 else 1002
             index = max((int(np.argmin(abs(side))) for side in sides),
                         key=lambda i: timestamps[i])
-            x1, y1, x2, y2 = boxes[index].tolist()
-
+            # x1, y1, x2, y2 = boxes[index].tolist()
+            # status
             entity_id = str(ulid.new())
+            info = EVENT_TYPES[event_type]
+            timestamp = timestamp_text(timestamps[index])
             data = {
-                'status': 'prepare', 'source': source,
-                'event_category': 'people',
-                'timestamp': timestamp_text(timestamps[index]),
-                # 'x': x1, 'y': y1, 'w': x2 - x1, 'h': y2 - y1,
-                'event_type': event_type, 'info': direction,
+                'event_type': event_type, 'source': 'decision_people@config',
                 'timestamp_begin': timestamp_text(track.history[0][1]),
                 'timestamp_end': timestamp_text(track.timestamp),
-                # 'points': [[float(x), float(y), timestamp_text(t)]
-                #            for (x, y), t in zip(points, timestamps)],
+                'validity': int(abs(sign) * 100), 'status': 'normal',
+                'addons': {'people': {'source_camera': source, 'info': info,
+                                      'timestamp': timestamp}}
             }
             events.append({'jsonrpc': '2.0', 'id':  str(uuid4()),
                            'method': 'mtp.save-event', 'params': {
@@ -162,5 +169,8 @@ class PeopleCounter:
                                'declaration': 'event',
                                'mode': {entity_id: 'patch'},
                                'entity': {entity_id: data}}})
+
+            log.info('Проход: source=%s %s - %.2f (%s)', source, info, sign,
+                     timestamp)
 
         return events

@@ -1,0 +1,15 @@
+{
+    "declarations": {
+        "people": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "source_camera": {"type": "string"},
+                "info": {"type": "string"},
+                "timestamp": {"type": "string"}
+            },
+            "required": [],
+            "mtp:event": {"base": "event"}
+        }
+    }
+}

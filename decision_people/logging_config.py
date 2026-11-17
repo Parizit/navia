@@ -5,7 +5,7 @@ from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 
 
-def setup_logging(is_debug: bool = False, backup_count: int = 5) -> logging.Logger:
+def setup_logging(is_debug: bool = False, backup_count: int = 5):
     """Консоль и logs/<модуль>.log рядом с main.py.
 
     Файл меняется в полночь; backup_count задаёт число архивных файлов.

@@ -27,9 +27,10 @@ def normalize_config(cfg):
     if not isinstance(cfg, dict):
         raise ValueError('Конфиг должен быть JSON-объектом')
     allowed = {'listen', 'websockets', 'classes', 'track', 'track_point',
-               'lines', 'direction'}
+               'lines', 'forward2In'}
     if cfg.keys() - allowed:
-        raise ValueError(f'Неизвестные параметры: {sorted(cfg.keys() - allowed)}')
+        raise ValueError('Неизвестные параметры: '
+                         f'{sorted(cfg.keys() - allowed)}')
     listen = cfg.setdefault('listen', {})
     if not isinstance(listen, dict) or listen.keys() - {'host', 'port'}:
         raise ValueError('listen: объект с host и port')
@@ -67,7 +68,8 @@ def normalize_config(cfg):
             raise ValueError(f'track.{key}: должно быть > 0')
     integer(track['min_hits'], 'track.min_hits', 2)
     number(track['iou'], 'track.iou', 0, 1)
-    if cfg.setdefault('track_point', 'bottom_center') not in ('center', 'bottom_center'):
+    if cfg.setdefault('track_point', 'bottom_center') not in ('center',
+                                                              'bottom_center'):
         raise ValueError('track_point: center или bottom_center')
     lines = cfg.get('lines')
     if not isinstance(lines, list) or not lines:
@@ -79,12 +81,9 @@ def normalize_config(cfg):
             number(coordinate, 'lines', 0, 1)
         if math.hypot(line[2] - line[0], line[3] - line[1]) <= 1e-9:
             raise ValueError('Линия должна иметь ненулевую длину')
-    direction = cfg.setdefault('direction', {})
-    if not isinstance(direction, dict) or direction.keys() - {'forward', 'backward'}:
-        raise ValueError('direction: объект с forward и backward')
-    for key, default in (('forward', 'Вход'), ('backward', 'Выход')):
-        if not isinstance(direction.setdefault(key, default), str) or not direction[key]:
-            raise ValueError(f'direction.{key}: непустая строка')
+    if cfg.setdefault('forward2In', False) not in (True, False):
+        raise ValueError('forward2In: True или False')
+
     return cfg
 
 
